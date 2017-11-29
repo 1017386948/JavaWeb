@@ -2,6 +2,7 @@ package com.benjamin.db;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 
 public final class DBManager {
 	private static final String URL = "jdbc:mysql://localhost:3306/db_store?useUnicode=true&characterEncoding=UTF-8";
@@ -9,25 +10,31 @@ public final class DBManager {
 	private static final String user = "root";
 	private static final String password = "root";
 
-	private static Connection connection = null;
-
-	static {
-		try {
-			Class.forName(driver);
-			connection = DriverManager.getConnection(URL, user, password);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+	private static ThreadLocal<Connection> connectionHolder = new ThreadLocal<Connection>() {
+		@Override
+		protected Connection initialValue() {
+			try {
+				return DriverManager.getConnection(URL, user, password);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			return null;
+		};
+	};
 
 	public static Connection getConnection() {
-		return connection;
+		try {
+			Class.forName(driver);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		return connectionHolder.get();
 	}
 
 	public static void close() {
 		try {
-			if (connection != null)
-				connection.close();
+			if (connectionHolder != null)
+				connectionHolder.get().close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
