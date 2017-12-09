@@ -1,33 +1,49 @@
 package com.benjamin.db;
 
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.SQLException;
+import java.util.Properties;
 
 public final class DBManager {
-	private static final String URL = "jdbc:mysql://localhost:3306/db_store?useUnicode=true&characterEncoding=UTF-8";
-	private static final String driver = "com.mysql.jdbc.Driver";
-	private static final String user = "root";
-	private static final String password = "root";
-
+	private static Properties prop = new Properties();
+	static {
+		InputStream config = null;
+		try {
+			config = DBManager.class.getClassLoader()
+					.getResourceAsStream("config.properties");
+			prop.load(config);
+			String driver = prop.getProperty("driver");
+			Class.forName(driver);
+		} catch (Exception e) {
+			if (config != null)
+				try {
+					config.close();
+				} catch (Exception e2) {
+					e.printStackTrace();
+				}
+			e.printStackTrace();
+		}
+	}
+	private final static String user = prop.getProperty("username");
+	private final static String password = prop.getProperty("password");
+	private final static String URL = prop.getProperty("url");
 	private static ThreadLocal<Connection> connectionHolder = new ThreadLocal<Connection>() {
+		// º”‘ÿ≈‰÷√Œƒº˛
+
 		@Override
 		protected Connection initialValue() {
+			Connection connection = null;
 			try {
-				return DriverManager.getConnection(URL, user, password);
-			} catch (SQLException e) {
+				connection = DriverManager.getConnection(URL, user, password);
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			return null;
-		};
+			return connection;
+		}
 	};
 
 	public static Connection getConnection() {
-		try {
-			Class.forName(driver);
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		}
 		return connectionHolder.get();
 	}
 
